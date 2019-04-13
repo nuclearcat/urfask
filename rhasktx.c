@@ -44,15 +44,18 @@ int rftx(char *data, int length) {
 		return 0;
 	}
 
+	// Send preamble
 	for (int i = 0; i < 4; i++) {
 		txbyte(&preamble[i * 2]);
 	}
 
+	// Encode packet length
 	crc = RHcrc_ccitt_update(crc, truelen);
 	buffer[0] = symbols[truelen >> 4];
 	buffer[1] = symbols[truelen & 0xf];
 	txbyte(buffer);
 
+	// TODO: address source + destination
 	for (int i = 0; i < 2; i++) {
 		byte = 255;
 		crc = RHcrc_ccitt_update(crc, byte);
@@ -60,6 +63,8 @@ int rftx(char *data, int length) {
 		buffer[1] = symbols[byte & 0xf];
 		txbyte(buffer);
 	}
+
+	// TODO: address source 2 other flags
 	for (int i = 0; i < 2; i++) {
 		byte = 0;
 		crc = RHcrc_ccitt_update(crc, byte);
@@ -68,6 +73,7 @@ int rftx(char *data, int length) {
 		txbyte(buffer);
 	}
 
+	// Payload
 	for (int i = 0; i < length; i++) {
 		crc = RHcrc_ccitt_update(crc, data[i]);
 		buffer[0] = symbols[data[i] >> 4];
@@ -75,6 +81,7 @@ int rftx(char *data, int length) {
 		txbyte(buffer);
 	}
 
+	// Calculate and send CRC
 	crc = ~crc;
 	buffer[0] = symbols[(crc >> 4) & 0xf];
 	buffer[1] = symbols[crc & 0xf];
@@ -83,6 +90,7 @@ int rftx(char *data, int length) {
 	buffer[1] = symbols[(crc >> 8) & 0xf];
 	txbyte(buffer);
 
+	// Switch off
 	HAL_GPIO_WritePin(TX_PORT, TX_PIN, GPIO_PIN_RESET);
 	return 1;
 }
